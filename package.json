@@ -23,7 +23,7 @@
 		"yarn": "^4"
 	},
 	"dependencies": {
-		"@companion-module/base": "2.1.1",
+		"@companion-module/base": "2.0.4",
 		"@julusian/midi": "^3.6.1"
 	},
 	"devDependencies": {

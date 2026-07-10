@@ -5,13 +5,13 @@ __metadata:
   version: 10
   cacheKey: 10c0
 
-"@companion-module/base@npm:2.1.1":
-  version: 2.1.1
-  resolution: "@companion-module/base@npm:2.1.1"
+"@companion-module/base@npm:2.0.4":
+  version: 2.0.4
+  resolution: "@companion-module/base@npm:2.0.4"
   dependencies:
     colord: "npm:^2.9.3"
     tslib: "npm:^2.8.1"
-  checksum: 10c0/fc74d8fd5c91521c9560e50e831b57439135d9bf877f6c119981f7082c3cff4e83199425cf0d0274315172d6d85d99900bafb6c6b8fad22a08c39c778b13e816
+  checksum: 10c0/f7499efe73b9e409dec553d86a95c9832caafbbc4a2b40f053736f8a34b126ef94aeb8fee38456550d8696a9251fdc56aaddcea3f07ee5125db8befc7fba1def
   languageName: node
   linkType: hard
 
@@ -1959,7 +1959,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "vrchat-midi-multicammixer@workspace:."
   dependencies:
-    "@companion-module/base": "npm:2.1.1"
+    "@companion-module/base": "npm:2.0.4"
     "@companion-module/tools": "npm:^3.0.2"
     "@julusian/midi": "npm:^3.6.1"
     "@types/node": "npm:^22.19.17"
