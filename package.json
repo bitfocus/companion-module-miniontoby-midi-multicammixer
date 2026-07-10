@@ -1,6 +1,6 @@
 {
 	"name": "vrchat-midi-multicammixer",
-	"version": "1.0.6.2",
+	"version": "1.0.7",
 	"main": "dist/main.js",
 	"type": "module",
 	"scripts": {
