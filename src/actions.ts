@@ -37,7 +37,7 @@ export function UpdateActions(self: ModuleInstance): void {
 				},
 			],
 			callback: async (action) => {
-				self.SetCurrentProgram(action.options.value)
+				self.setCurrentProgram(action.options.value)
 			},
 		},
 		set_preview: {
@@ -53,28 +53,28 @@ export function UpdateActions(self: ModuleInstance): void {
 				},
 			],
 			callback: async (action) => {
-				self.SetCurrentPreview(action.options.value)
+				self.setCurrentPreview(action.options.value)
 			},
 		},
 		cut: {
 			name: 'Cut (swap Program and Preview)',
 			options: [],
 			callback: async () => {
-				self.Cut()
+				self.cut()
 			},
 		},
 		auto: {
 			name: 'Auto (swap Program and Preview)',
 			options: [],
 			callback: async () => {
-				self.Cut() // TODO still need to implement Auto transitions, either Unity side, or this side
+				self.auto()
 			},
 		},
 		reset: {
 			name: 'Reset',
 			options: [],
 			callback: async () => {
-				self._Reset()
+				self.reset()
 			},
 		},
 	})

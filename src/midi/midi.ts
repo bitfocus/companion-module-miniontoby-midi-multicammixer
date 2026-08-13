@@ -1,57 +1,81 @@
 import * as node_midi from '@julusian/midi'
 
 export class Output {
-	private _output
+	private _output: node_midi.Output | null = null
 	public name: string
 
-	constructor(name: string, virtual?: boolean) {
-		this._output = new node_midi.Output()
+	constructor(name: string) {
 		this.name = name
-		const outputPortNumberedNames: string[] = getOutputs()
 
-		if (virtual) {
-			this._output.openVirtualPort(name)
-		} else {
-			const numOutputs = this._output.getPortCount()
-			for (let i = 0; i < numOutputs; i++) {
+		try {
+			this._output = new node_midi.Output()
+			const outputPortNumberedNames: string[] = getOutputs(this._output)
+			for (let i = 0; i < outputPortNumberedNames.length; i++) {
 				if (name === outputPortNumberedNames[i]) {
-					try {
-						this._output.openPort(i)
-					} catch (err) {
-						console.log(`Error opening port ${name}.\nError: ${err}`)
-					}
+					this._output.openPort(i)
+					break
 				}
 			}
+		} catch (err) {
+			console.log(`Error opening port ${name}.\nError: ${err}`)
+			this._output?.closePort()
+			this._output = null
 		}
 	}
 
 	close(): void {
-		this._output.closePort()
-		this._output.destroy()
+		if (!this._output) return
+		try {
+			this._output.closePort()
+			this._output.destroy()
+		} catch {
+			/* empty */
+		}
+		this._output = null
 	}
 
 	isPortOpen(): boolean {
-		return this._output.isPortOpen()
+		if (this._output === null) return false
+		try {
+			return this._output.isPortOpen()
+		} catch {
+			return false
+		}
 	}
 
-	sendMessage(bytes: node_midi.MidiMessage): void {
-		this._output.sendMessage(bytes)
+	sendMessage(bytes: node_midi.MidiMessage): boolean {
+		if (this._output === null) return false
+		try {
+			this._output.sendMessage(bytes)
+			return true
+		} catch {
+			return false
+		}
 	}
 }
 
-export function getOutputs(): string[] {
-	const output = new node_midi.Output()
-	const outputs: string[] = []
-	for (let i = 0; i < output.getPortCount(); i++) {
-		let counter = 0
-		const portName = output.getPortName(i)
-		let numberedPortName = portName
-		while (outputs.includes(numberedPortName)) {
-			counter++
-			numberedPortName += ` ${counter}`
+export function getOutputs(output?: node_midi.Output): string[] {
+	if (!output) {
+		try {
+			output = new node_midi.Output()
+		} catch {
+			return []
 		}
-		outputs.push(numberedPortName)
 	}
-	output.closePort()
+	const outputs: string[] = []
+	try {
+		for (let i = 0; i < output.getPortCount(); i++) {
+			let counter = 0
+			const portName = output.getPortName(i)
+			let numberedPortName = portName
+			while (outputs.includes(numberedPortName)) {
+				counter++
+				numberedPortName += ` ${counter}`
+			}
+			outputs.push(numberedPortName)
+		}
+	} catch (err) {
+		console.error(err)
+	}
 	return outputs
 }

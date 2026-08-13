@@ -2,8 +2,8 @@
 	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
 	"type": "connection",
 	"id": "vrchat-midi-multicammixer",
-	"name": "VRChat MIDI MultiCamMixer",
-	"shortname": "VRChat MultiCamMixer",
+	"name": "vrchat-midi-multicammixer",
+	"shortname": "vrchat-multicammixer",
 	"description": "Controls CurrentProgram and CurrentPreview in a VRChat world via MIDI.",
 	"version": "0.0.0",
 	"license": "MIT",
@@ -26,6 +26,6 @@
 	},
 	"legacyIds": [],
 	"manufacturer": "VRChat",
-	"products": ["VRChat MultiCamMixer"],
-	"keywords": ["vrchat", "midi", "switcher", "camera"]
+	"products": ["MultiCamMixer"],
+	"keywords": ["switcher", "camera", "loopmidi", "unity"]
 }

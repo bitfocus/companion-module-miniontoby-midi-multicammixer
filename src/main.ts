@@ -5,7 +5,7 @@ import { UpgradeScripts } from './upgrades.js'
 import { UpdateActions, type ActionsSchema } from './actions.js'
 import { UpdateFeedbacks, type FeedbacksSchema } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
-import { Output, getOutputs } from './midi/midi.js'
+import { Output } from './midi/midi.js'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
@@ -25,19 +25,18 @@ const CONTROL_NOTE = 126
 
 export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	config!: ModuleConfig // Setup in init()
-	midiOutput: Output | null
-	logStream: { path: string; bytesRead: number } | false | null
-	lastUpdate: number
-	watchdogInterval: NodeJS.Timeout | number | null
+	private _midiOutput: Output | null = null
+	private _logStream: { path: string; bytesRead: number } | false | null = null
+	private _lastUpdate: number
+	private _watchdogInterval: NodeJS.Timeout | number | null = null
+	private _resetTimeout: NodeJS.Timeout | number | null = null
+	private _fd: number | null = null
 	CurrentProgram: number
 	CurrentPreview: number
 
 	constructor(internal: unknown) {
 		super(internal)
-		this.midiOutput = null
-		this.logStream = null
-		this.lastUpdate = 0
-		this.watchdogInterval = null
+		this._lastUpdate = Date.now()
 
 		this.CurrentProgram = 0
 		this.CurrentPreview = 0
@@ -55,27 +54,39 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	}
 
 	async destroy(): Promise<void> {
-		if (this.watchdogInterval) clearInterval(this.watchdogInterval)
-		if (this.logStream) this.logStream = null
-		if (this.midiOutput) this.midiOutput.close()
+		this.reset(false)
+		if (this._resetTimeout !== null) clearTimeout(this._resetTimeout)
+		if (this._watchdogInterval) clearInterval(this._watchdogInterval)
+		if (this._fd !== null) {
+			fs.closeSync(this._fd)
+			this._fd = null
+		}
+		if (this._logStream) this._logStream = null
+		if (this._midiOutput) this._midiOutput.close()
 		this.log('debug', `${this.id} destroyed`)
 	}
 
 	async configUpdated(config: ModuleConfig): Promise<void> {
 		this.config = config
 
-		this.log(
-			'debug',
-			`Available MIDI Outputs: ${JSON.stringify(getOutputs())}\n\tSelected MIDI Output: ${config.outPortName}`,
-		)
+		this.log('debug', `Selected MIDI Output: ${config.outPortName}`)
 
-		if (this.watchdogInterval) clearInterval(this.watchdogInterval)
-		if (this.midiOutput) this.midiOutput.close()
+		if (this._resetTimeout !== null) {
+			clearTimeout(this._resetTimeout)
+			this._resetTimeout = null
+		}
+		if (this._watchdogInterval) clearInterval(this._watchdogInterval)
+		if (this._fd !== null) {
+			fs.closeSync(this._fd)
+			this._fd = null
+		}
+		if (this._logStream) this._logStream = null
+		if (this._midiOutput) this._midiOutput.close()
 
-		this.midiOutput = new Output(config.outPortName)
+		this._midiOutput = new Output(config.outPortName)
 
-		const midiOutStatus = this.midiOutput.isPortOpen()
-		this.log('info', `Selected Out Port "${this.midiOutput.name}" is ${midiOutStatus ? '' : 'NOT '}Open.`)
+		const midiOutStatus = this._midiOutput.isPortOpen()
+		this.log('info', `Selected Out Port "${this._midiOutput.name}" is ${midiOutStatus ? '' : 'NOT '}Open.`)
 
 		if (!midiOutStatus) {
 			this.updateStatus(InstanceStatus.BadConfig, 'MIDI Out Port not open')
@@ -106,58 +117,57 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	}
 
 	start(): void {
+		if (this._resetTimeout !== null) {
+			clearTimeout(this._resetTimeout)
+			this._resetTimeout = null
+		}
 		this.log('debug', '\nEntering *main*\n')
-		this.updateStatus(InstanceStatus.Connecting)
+		this.updateStatus(InstanceStatus.Connecting, 'Connecting for the first time')
+		this._lastUpdate = Date.now()
 		this._findVRCLog()
 		this._midiKnock()
 		this._midiWatchdog()
-		this.watchdogInterval = setInterval(() => this._Tick(), 100)
+		this._watchdogInterval = setInterval(() => this._tick(), 250)
 	}
 
-	SetCurrentProgram(index: number): void {
-		const CurrentProgram = Math.min(index, 50)
-		this._SendChannelValue(0, CurrentProgram)
+	setCurrentProgram(index: number): void {
+		const CurrentProgram = Math.min(Math.max(0, Math.round(index)), 50)
+		this._sendChannelValue(0, CurrentProgram)
 		// this._setCurrentProgramVariable(CurrentProgram) // Let the callback set the value instead!
 	}
 
-	SetCurrentPreview(index: number): void {
-		const CurrentPreview = Math.min(index, 50)
-		this._SendChannelValue(1, CurrentPreview)
+	setCurrentPreview(index: number): void {
+		const CurrentPreview = Math.min(Math.max(0, Math.round(index)), 50)
+		this._sendChannelValue(1, CurrentPreview)
 		// this._setCurrentPreviewVariable(CurrentPreview) // Let the callback set the value instead!
 	}
 
-	Cut(): void {
+	cut(): void {
 		const oldProgram = this.CurrentProgram
 		const oldPreview = this.CurrentPreview
-		this.SetCurrentPreview(0)
-		this.SetCurrentProgram(oldPreview)
-		this.SetCurrentPreview(oldProgram)
+		this.setCurrentPreview(0)
+		this.setCurrentProgram(oldPreview)
+		this.setCurrentPreview(oldProgram)
 	}
 
-	_Tick(): void {
-		if (this._isMidiReady()) {
-			this._midiWatchdog()
-			this.lastUpdate = Date.now()
-
-			if (!this.getVariableValue('connected')) {
-				this.setVariableValues({ connected: true })
-				this.checkFeedbacks('connected')
-				this.updateStatus(InstanceStatus.Ok)
-			}
-		} else {
-			const elapsed = (Date.now() - this.lastUpdate) / 1000
-			if (elapsed > 1) {
-				this.lastUpdate = Date.now()
-				this._Reset()
-			}
-		}
+	auto(): void {
+		// We do not yet have an Auto method in the mixer package. Leaving this to be just like a cut
+		const oldProgram = this.CurrentProgram
+		const oldPreview = this.CurrentPreview
+		this.setCurrentPreview(0)
+		this.setCurrentProgram(oldPreview)
+		this.setCurrentPreview(oldProgram)
 	}
 
-	_Reset(): void {
+	reset(doReconnect: boolean = true): void {
 		// kind of check if we're already trying to connect
-		if (this.logStream === false) return
+		if (this._logStream === false) return
 
-		this.logStream = false
+		if (this._fd !== null) {
+			fs.closeSync(this._fd)
+			this._fd = null
+		}
+		this._logStream = false
 
 		if ((this.getVariableValue('current_program') ?? 0) > 0) {
 			this._setCurrentProgramVariable(0)
@@ -169,35 +179,62 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			this.setVariableValues({ connected: false })
 			this.checkFeedbacks('connected')
 		}
+		this.updateStatus(InstanceStatus.Disconnected, 'Connection Lost or Reset')
 
-		setTimeout(() => {
-			this.updateStatus(InstanceStatus.Connecting)
-			this._findVRCLog()
-			this._midiKnock()
+		if (this._resetTimeout !== null) clearTimeout(this._resetTimeout)
+		if (doReconnect) {
+			this._resetTimeout = setTimeout(() => {
+				this.updateStatus(InstanceStatus.Connecting, 'Connecting after reset')
+				this._lastUpdate = Date.now()
+				this._findVRCLog()
+				this._midiKnock()
+				this._midiWatchdog()
+			}, 5e3) // 5 seconds else it doesnt actually reset
+		}
+	}
+
+	_tick(): void {
+		if (this._logStream === false) return
+
+		if (this._isMidiReady()) {
 			this._midiWatchdog()
-		}, 5e3) // 5 seconds else it doesnt actually reset
+			this._lastUpdate = Date.now()
+
+			if (!this.getVariableValue('connected')) {
+				this.setVariableValues({ connected: true })
+				this.checkFeedbacks('connected')
+				this.updateStatus(InstanceStatus.Ok)
+			}
+		} else {
+			const elapsed = (Date.now() - this._lastUpdate) / 1000
+			if (elapsed > 1) {
+				this._lastUpdate = Date.now()
+				this.reset()
+			}
+		}
 	}
 
-	_SendChannelValue(isPreview: number, index: number): void {
-		const value = (Math.min(index, 50) << 1) | (isPreview & 0x1)
-		this._SendMidiControl(value)
+	_sendChannelValue(isPreview: number, index: number): void {
+		index = Math.min(Math.max(0, Math.round(index)), 50)
+		const value = (index << 1) | (isPreview & 0x1)
+		this._sendMidiControl(value)
 	}
 
-	_SendMidiControl(code: number): void {
-		if (!this.midiOutput?.isPortOpen()) return
+	_sendMidiControl(code: number): void {
+		if (!this._midiOutput?.isPortOpen()) return
 		// this.log('debug', `Sending CC ch${CONTROL_CHANNEL} note${CONTROL_NOTE} val${code}`)
-		this.midiOutput.sendMessage([0xb0 | (CONTROL_CHANNEL & 0xf), CONTROL_NOTE, code & 0x7f])
+		this._midiOutput.sendMessage([0xb0 | (CONTROL_CHANNEL & 0xf), CONTROL_NOTE, code & 0x7f])
 	}
 
 	_midiKnock(): void {
-		this._SendMidiControl(102) // KnockStart
-		this._SendMidiControl(119) // KnockMiddle
-		this._SendMidiControl(108) // KnockFinish
+		this._sendMidiControl(102) // KnockStart
+		this._sendMidiControl(119) // KnockMiddle
+		this._sendMidiControl(108) // KnockFinish
 	}
 
 	_midiWatchdog(): void {
-		if (!this.logStream || !this.midiOutput?.isPortOpen()) return
-		this._SendMidiControl(127) // Watchdog
+		if (!this._logStream || !this._midiOutput?.isPortOpen()) return
+		this._sendMidiControl(127) // Watchdog
 	}
 
 	_setCurrentProgramVariable(programValue: number): void {
@@ -213,17 +250,16 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	}
 
 	_isMidiReady(): boolean {
-		if (!this.logStream || !this.midiOutput?.isPortOpen()) return false
+		if (!this._logStream || !this._midiOutput?.isPortOpen()) return false
 		try {
-			const stat = fs.statSync(this.logStream.path)
-			const newBytes = stat.size - this.logStream.bytesRead
+			const stat = fs.statSync(this._logStream.path)
+			const newBytes = stat.size - this._logStream.bytesRead
 			if (newBytes <= 0) return false
 
 			const buf = Buffer.alloc(newBytes)
-			const fd = fs.openSync(this.logStream.path, 'r')
-			fs.readSync(fd, buf, 0, newBytes, this.logStream.bytesRead)
-			fs.closeSync(fd)
-			this.logStream.bytesRead += newBytes
+			if (this._fd === null) this._fd = fs.openSync(this._logStream.path, 'r')
+			fs.readSync(this._fd, buf, 0, newBytes, this._logStream.bytesRead)
+			this._logStream.bytesRead += newBytes
 
 			const text = buf.toString('utf8')
 
@@ -236,39 +272,62 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 				this._setCurrentPreviewVariable(parseInt(previewMatch[previewMatch.length - 1][1], 10)) // grab last
 
 			return text.includes('MIXERREADY')
-		} catch {
+		} catch (err) {
+			this.log('warn', `Error reading logs: ${err}`)
+			if (this._fd !== null) {
+				fs.closeSync(this._fd)
+				this._fd = null
+			}
 			return false
 		}
 	}
 
 	_findVRCLog(): void {
-		this.logStream = null
-		const vrcPath = path.join(os.homedir(), 'AppData', 'LocalLow', 'VRChat', 'VRChat')
+		if (this._fd !== null) {
+			fs.closeSync(this._fd)
+			this._fd = null
+		}
+		this._logStream = null
 		let logs: string[] = []
 
-		if (this.config.useEditorLog) {
-			const vrcEditorPath = path.join(os.homedir(), 'AppData', 'Local', 'Unity', 'Editor', 'Editor.log')
-			if (fs.existsSync(vrcEditorPath)) logs = [vrcEditorPath]
-		} else {
-			try {
+		try {
+			if (this.config.useEditorLog) {
+				const vrcEditorPath =
+					os.platform() === 'win32'
+						? path.join(os.homedir(), 'AppData', 'Local', 'Unity', 'Editor', 'Editor.log')
+						: path.join(os.homedir(), '.config', 'unity3d', 'Editor.log') // Assume XDG defaults
+				if (fs.existsSync(vrcEditorPath)) logs = [vrcEditorPath]
+			} else {
+				const localLowPath =
+					os.platform() === 'win32'
+						? path.join(os.homedir(), 'AppData', 'LocalLow')
+						: path.join(os.homedir(), '.local', 'share') // Assume XDG defaults
+				const vrcPath = path.join(localLowPath, 'VRChat', 'VRChat')
 				logs = fs
 					.readdirSync(vrcPath)
 					.filter((f) => f.match(/^output_log_.*\.txt$/))
 					.map((f) => path.join(vrcPath, f))
 					.sort()
-			} catch {
-				/* empty */
 			}
+		} catch (err) {
+			this.log('error', `Error finding logs: ${err}`)
 		}
 
 		if (logs.length === 0) {
-			this.updateStatus(InstanceStatus.ConnectionFailure, 'Cannot find/read logs')
+			this.updateStatus(InstanceStatus.ConnectionFailure, 'Cannot find logs')
+			this.reset()
 			return
 		}
 
 		const latest = logs[logs.length - 1]
-		const size = fs.statSync(latest).size
-		this.logStream = { path: latest, bytesRead: size > 0 ? size - 1 : 0 }
-		this.log('debug', `Watching log: ${latest}`)
+		try {
+			const size = fs.statSync(latest).size
+			this._logStream = { path: latest, bytesRead: size > 0 ? size - 1 : 0 }
+			this.log('debug', `Watching log: ${latest}`)
+		} catch {
+			this.updateStatus(InstanceStatus.ConnectionFailure, 'Failed to read logs')
+			this.reset()
+			return
+		}
 	}
 }

@@ -24,7 +24,26 @@ export function UpdatePresets(self: ModuleInstance): void {
 					id: 'cameras',
 					type: 'simple',
 					name: 'Cameras',
-					presets: ['camera_1', 'camera_2', 'camera_3', 'camera_4', 'camera_5', 'camera_6', 'camera_7', 'camera_8'],
+					presets: [],
+				},
+				{
+					id: 'set_preview_cameras',
+					type: 'template',
+					name: 'Cameras',
+					presetId: 'set_preview_camera',
+
+					templateVariableName: 'input',
+					templateValues: [
+						// Tip: the name will override the 'name' field of the preset itself
+						{ name: 'Cam 1', value: 1 },
+						{ name: 'Cam 2', value: 2 },
+						{ name: 'Cam 3', value: 3 },
+						{ name: 'Cam 4', value: 4 },
+						{ name: 'Cam 5', value: 5 },
+						{ name: 'Cam 6', value: 6 },
+						{ name: 'Cam 7', value: 7 },
+						{ name: 'Cam 8', value: 8 },
+					],
 				},
 			],
 		},
@@ -150,8 +169,72 @@ export function UpdatePresets(self: ModuleInstance): void {
 		],
 	}
 
+	presets['set_preview_camera'] = {
+		type: 'simple',
+		name: 'Set Preview Camera Input',
+		style: {
+			text: 'Cam $(local:input)',
+			size: '18',
+			color: 0xffffff,
+			bgcolor: 0x000000,
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'set_preview',
+						options: {
+							value: {
+								isExpression: true,
+								value: '$(local:input)',
+							},
+						},
+					},
+				],
+				up: [],
+			},
+		],
+		feedbacks: [
+			{
+				feedbackId: 'connected',
+				options: {},
+				style: {
+					color: 0x000000,
+					bgcolor: 0xb8b8b8,
+				},
+			},
+			{
+				feedbackId: 'preview_active',
+				options: {
+					value: {
+						isExpression: true,
+						value: '$(local:input)',
+					},
+				},
+				style: {
+					color: 0x000000,
+					bgcolor: 0x00ff00,
+				},
+			},
+			{
+				feedbackId: 'program_active',
+				options: {
+					value: {
+						isExpression: true,
+						value: '$(local:input)',
+					},
+				},
+				style: {
+					color: 0xffffff,
+					bgcolor: 0xff0000,
+				},
+			},
+		],
+	}
+
 	for (let i = 1; i <= 8; i++) {
-		presets[`camera_${i}`] = {
+		const id = `camera_${i}`
+		presets[id] = {
 			type: 'simple',
 			name: `Camera ${i}`,
 			style: {
@@ -203,6 +286,13 @@ export function UpdatePresets(self: ModuleInstance): void {
 					},
 				},
 			],
+		}
+
+		const def = structure[0].definitions.find(
+			(def) => typeof def !== 'string' && def.id === 'cameras' && def.type === 'simple',
+		)
+		if (def && typeof def !== 'string' && def.type === 'simple') {
+			def.presets.push(id)
 		}
 	}
 
