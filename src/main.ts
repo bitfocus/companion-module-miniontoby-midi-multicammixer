@@ -207,7 +207,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			}
 		} else {
 			const elapsed = (Date.now() - this._lastUpdate) / 1000
-			if (elapsed > 1) {
+			if (elapsed > 3) {
 				this._lastUpdate = Date.now()
 				this.reset()
 			}
