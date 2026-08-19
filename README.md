@@ -1,6 +1,6 @@
 # VRChat MultiCamMixer's MIDI protocol companion module
 
-A module for Bitfocus Companion (for StreamDeck control) to use the VRChat MultiCamMixer's MIDI protocol.
+A module for Bitfocus Companion (for StreamDeck control) to use the [VRChat MultiCamMixer](https://github.com/Miniontoby/VRChatMultiCamMixer)'s MIDI protocol.
 
 
 ## Requirements
