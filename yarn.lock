@@ -1357,6 +1357,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"miniontoby-midi-multicammixer@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "miniontoby-midi-multicammixer@workspace:."
+  dependencies:
+    "@companion-module/base": "npm:2.1.3"
+    "@companion-module/tools": "npm:^3.1.0"
+    "@julusian/midi": "npm:^3.8.1"
+    "@types/node": "npm:^22.19.17"
+    eslint: "npm:^10.6.0"
+    husky: "npm:^9.1.7"
+    lint-staged: "npm:^17.0.8"
+    prettier: "npm:^3.8.3"
+    rimraf: "npm:^6.1.3"
+    typescript: "npm:~6.0.3"
+    typescript-eslint: "npm:^8.63.0"
+  languageName: unknown
+  linkType: soft
+
 "minipass@npm:^7.0.4, minipass@npm:^7.1.2, minipass@npm:^7.1.3":
   version: 7.1.3
   resolution: "minipass@npm:7.1.3"
@@ -1857,24 +1875,6 @@ __metadata:
   checksum: 10c0/4ef57b45aa820d7ac6496e9208559986c665e49447cb072744c13b66925a362d96dd5a46c4530a6b8e203e5db5fe849369444440cb22ecfc26c679359e5dfa3c
   languageName: node
   linkType: hard
-
-"vrchat-midi-multicammixer@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "vrchat-midi-multicammixer@workspace:."
-  dependencies:
-    "@companion-module/base": "npm:2.1.3"
-    "@companion-module/tools": "npm:^3.1.0"
-    "@julusian/midi": "npm:^3.8.1"
-    "@types/node": "npm:^22.19.17"
-    eslint: "npm:^10.6.0"
-    husky: "npm:^9.1.7"
-    lint-staged: "npm:^17.0.8"
-    prettier: "npm:^3.8.3"
-    rimraf: "npm:^6.1.3"
-    typescript: "npm:~6.0.3"
-    typescript-eslint: "npm:^8.63.0"
-  languageName: unknown
-  linkType: soft
 
 "which@npm:^2.0.1":
   version: 2.0.2

@@ -1,14 +1,14 @@
 {
 	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
 	"type": "connection",
-	"id": "vrchat-midi-multicammixer",
-	"name": "vrchat-midi-multicammixer",
-	"shortname": "vrchat-multicammixer",
-	"description": "Controls CurrentProgram and CurrentPreview in a VRChat world via MIDI.",
+	"id": "miniontoby-midi-multicammixer",
+	"name": "miniontoby-midi-multicammixer",
+	"shortname": "miniontoby-multicammixer",
+	"description": "Control video switchers in VRChat worlds using MIDI.",
 	"version": "0.0.0",
 	"license": "MIT",
-	"repository": "git+https://github.com/bitfocus/companion-module-vrchat-midi-multicammixer.git",
-	"bugs": "https://github.com/bitfocus/companion-module-vrchat-midi-multicammixer/issues",
+	"repository": "git+https://github.com/bitfocus/companion-module-miniontoby-midi-multicammixer.git",
+	"bugs": "https://github.com/bitfocus/companion-module-miniontoby-midi-multicammixer/issues",
 	"maintainers": [
 		{
 			"name": "Miniontoby",
@@ -25,7 +25,7 @@
 		}
 	},
 	"legacyIds": [],
-	"manufacturer": "VRChat",
+	"manufacturer": "Miniontoby",
 	"products": ["MultiCamMixer"],
-	"keywords": ["switcher", "camera", "loopmidi", "unity"]
+	"keywords": ["vrchat", "switcher", "camera", "loopmidi", "unity"]
 }

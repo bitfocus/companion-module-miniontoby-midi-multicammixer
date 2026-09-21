@@ -1,6 +1,6 @@
 {
-	"name": "vrchat-midi-multicammixer",
-	"version": "1.0.8",
+	"name": "miniontoby-midi-multicammixer",
+	"version": "1.0.9",
 	"main": "dist/main.js",
 	"type": "module",
 	"scripts": {
@@ -16,7 +16,7 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/bitfocus/companion-module-vrchat-midi-multicammixer.git"
+		"url": "git+https://github.com/bitfocus/companion-module-miniontoby-midi-multicammixer.git"
 	},
 	"engines": {
 		"node": "^22.20",
