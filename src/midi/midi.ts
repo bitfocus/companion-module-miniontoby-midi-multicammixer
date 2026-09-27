@@ -70,7 +70,7 @@ export function getOutputs(output?: node_midi.Output): string[] {
 			let numberedPortName = portName
 			while (outputs.includes(numberedPortName)) {
 				counter++
-				numberedPortName += ` ${counter}`
+				numberedPortName = `${portName} ${counter}`
 			}
 			outputs.push(numberedPortName)
 		}

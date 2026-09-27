@@ -24,7 +24,7 @@
 			"native-addons": true
 		}
 	},
-	"legacyIds": [],
+	"legacyIds": ["vrchat-midi-multicammixer"],
 	"manufacturer": "Miniontoby",
 	"products": ["MultiCamMixer"],
 	"keywords": ["vrchat", "switcher", "camera", "loopmidi", "unity"]
