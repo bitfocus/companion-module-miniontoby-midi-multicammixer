@@ -193,7 +193,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		}
 	}
 
-	_tick(): void {
+	private _tick(): void {
 		if (this._logStream === false) return
 
 		if (this._isMidiReady()) {
@@ -214,42 +214,42 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		}
 	}
 
-	_sendChannelValue(isPreview: number, index: number): void {
+	private _sendChannelValue(isPreview: number, index: number): void {
 		index = Math.min(Math.max(0, Math.round(index)), 50)
 		const value = (index << 1) | (isPreview & 0x1)
 		this._sendMidiControl(value)
 	}
 
-	_sendMidiControl(code: number): void {
+	private _sendMidiControl(code: number): void {
 		if (!this._midiOutput?.isPortOpen()) return
 		// this.log('debug', `Sending CC ch${CONTROL_CHANNEL} note${CONTROL_NOTE} val${code}`)
 		this._midiOutput.sendMessage([0xb0 | (CONTROL_CHANNEL & 0xf), CONTROL_NOTE, code & 0x7f])
 	}
 
-	_midiKnock(): void {
+	private _midiKnock(): void {
 		this._sendMidiControl(102) // KnockStart
 		this._sendMidiControl(119) // KnockMiddle
 		this._sendMidiControl(108) // KnockFinish
 	}
 
-	_midiWatchdog(): void {
+	private _midiWatchdog(): void {
 		if (!this._logStream || !this._midiOutput?.isPortOpen()) return
 		this._sendMidiControl(127) // Watchdog
 	}
 
-	_setCurrentProgramVariable(programValue: number): void {
+	private _setCurrentProgramVariable(programValue: number): void {
 		this.CurrentProgram = programValue
 		this.setVariableValues({ current_program: programValue })
 		this.checkFeedbacks('program_active')
 	}
 
-	_setCurrentPreviewVariable(previewValue: number): void {
+	private _setCurrentPreviewVariable(previewValue: number): void {
 		this.CurrentPreview = previewValue
 		this.setVariableValues({ current_preview: previewValue })
 		this.checkFeedbacks('preview_active')
 	}
 
-	_isMidiReady(): boolean {
+	private _isMidiReady(): boolean {
 		if (!this._logStream || !this._midiOutput?.isPortOpen()) return false
 		try {
 			const stat = fs.statSync(this._logStream.path)
@@ -282,7 +282,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		}
 	}
 
-	_findVRCLog(): void {
+	private _findVRCLog(): void {
 		if (this._fd !== null) {
 			fs.closeSync(this._fd)
 			this._fd = null
